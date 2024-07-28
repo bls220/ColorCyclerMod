@@ -1,10 +1,11 @@
 ﻿using Assets.Scripts;
 using Assets.Scripts.Inventory;
+using Assets.Scripts.Networking;
 using Assets.Scripts.Objects;
 using Assets.Scripts.Objects.Items;
 using HarmonyLib;
 using JetBrains.Annotations;
-using System.Collections;
+using Objects.Items;
 
 namespace ColorCycler
 {
@@ -20,15 +21,7 @@ namespace ColorCycler
             {
                 if (__instance.ActiveHand.Slot.Get() is SprayCan sprayCan)
                 {
-                    int current = -1;
-                    for (int i = 0; i < GameManager.Instance.CustomColors.Count; i++)
-                    {
-                        if (GameManager.Instance.CustomColors[i].Normal == sprayCan.PaintMaterial)
-                        {
-                            current = i;
-                            break;
-                        }
-                    }
+                    int current = ColorCyclerModHelpers.GetPaintColorIndex(sprayCan.PaintMaterial);
                     if (keyUp)
                     {
                         current++;
@@ -43,37 +36,85 @@ namespace ColorCycler
                     }
                     if (current < 0)
                     {
-                        current = GameManager.Instance.CustomColors.Count-1;
+                        current = GameManager.Instance.CustomColors.Count - 1;
                     }
-                    sprayCan.PaintableMaterial = GameManager.Instance.CustomColors[current].Normal;
-                    sprayCan.PaintMaterial = GameManager.Instance.CustomColors[current].Normal;
-                    foreach (Thing thing in Prefab.AllPrefabs)
+                    var paintMaterial = ColorCyclerModHelpers.GetPaintColor(current);
+                    ColorCyclerModHelpers.UpdateSprayCan(sprayCan, paintMaterial);
+                    __instance.ActiveHand.Slot.RefreshSlotDisplay();
+
+                    if (NetworkManager.IsClient)
                     {
-                        if (thing is SprayCan sprayCan2)
+                        NetworkClient.SendToServer(new ThingColorMessage
                         {
-                            if (sprayCan2.PaintMaterial == sprayCan.PaintMaterial)
-                            {
-                                sprayCan.SetPrefab(sprayCan2);
-                                sprayCan.RenameThing(sprayCan2.DisplayName);
-                                sprayCan.Thumbnail = sprayCan2.Thumbnail;
-                                __instance.ActiveHand.Slot.RefreshSlotDisplay();
-                            }
-                        }
+                            ThingId = sprayCan.ReferenceId,
+                            ColorIndex = current
+                        }, NetworkChannel.GeneralTraffic);
                     }
-                    sprayCan.Quantity = sprayCan.MaxQuantity;
                 }
             }
         }
     }
 
     [HarmonyPatch(typeof(SprayCan), "OnUseItem")]
-    public class SprayCanOnUseItemPAtch
+    public class SprayCanOnUseItemPatch
     {
         [UsedImplicitly]
-        public static bool Prefix(ref bool __result)
+        public static bool Prefix(ref float quantity)
         {
-            __result = true;
-            return false;
+            // Make Paint infinite.
+            quantity = 0.0f;
+            // Not modifying __result and returning false, so that pollution still occurs.
+            return true;
+        }
+    }
+
+    // We have to patch Consumable because SprayCan does not implement the method
+    [HarmonyPatch(typeof(Consumable), nameof(Consumable.BuildUpdate))]
+    public class ConsumableBuildUpdatePatch
+    {
+        [UsedImplicitly]
+        public static void Postfix(Consumable __instance, RocketBinaryWriter writer, ushort networkUpdateType)
+        {
+            if (__instance is SprayCan sprayCan)
+            {
+                if (Thing.IsNetworkUpdateRequired(4096U, networkUpdateType))
+                {
+                    writer.WriteInt32(ColorCyclerModHelpers.GetPaintColorIndex(sprayCan.PaintMaterial));
+                }
+            }
+        }
+    }
+
+    // We have to patch Consumable because SprayCan does not implement the method
+    [HarmonyPatch(typeof(Consumable), nameof(Consumable.ProcessUpdate))]
+    public class ConsumableProcessUpdatePatch
+    {
+        [UsedImplicitly]
+        public static void Postfix(Consumable __instance, RocketBinaryReader reader, ushort networkUpdateType)
+        {
+            if (__instance is SprayCan sprayCan)
+            {
+                if (Thing.IsNetworkUpdateRequired(4096U, networkUpdateType))
+                {
+                    int index = reader.ReadInt32();
+                    var paintMaterial = ColorCyclerModHelpers.GetPaintColor(index);
+                    ColorCyclerModHelpers.UpdateSprayCan(sprayCan, paintMaterial);
+                }
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(ThingColorMessage), nameof(ThingColorMessage.Process))]
+    public class ThingColorMessageProcessPatch
+    {
+        [UsedImplicitly]
+        public static void Postfix(ThingColorMessage __instance, long hostId)
+        {
+            if (Thing.Find(__instance.ThingId) is SprayCan sprayCan)
+            {
+                var paintMaterial = ColorCyclerModHelpers.GetPaintColor(__instance.ColorIndex);
+                ColorCyclerModHelpers.UpdateSprayCan(sprayCan, paintMaterial);
+            }
         }
     }
 }
