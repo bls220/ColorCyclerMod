@@ -1,6 +1,6 @@
-﻿using HarmonyLib;
+﻿using BepInEx.Logging;
+using HarmonyLib;
 using System;
-using UnityEngine;
 
 namespace ColorCycler
 {
@@ -11,23 +11,38 @@ namespace ColorCycler
         public const string pluginGuid = "net.elmo.stationeers.ColorCycler";
         public const string pluginName = "ColorCycler";
         public const string pluginVersion = "1.1.0";
-        public static void Log(string line)
+
+        private Harmony _harmony;
+
+        internal static new ManualLogSource Logger;
+        internal static ColorCyclerConfig Settings;
+
+        public ColorCyclerBep()
         {
-            Debug.Log("[" + pluginName + "]: " + line);
+            Settings ??= new ColorCyclerConfig(Config);
         }
+
         void Awake()
         {
+            Logger = base.Logger;
             try
             {
-                var harmony = new Harmony(pluginGuid);
-                harmony.PatchAll();
-                Log("Patch succeeded");
+                _harmony = new Harmony(pluginGuid);
+                _harmony.PatchAll();
+                Logger.LogInfo("Patch succeeded");
             }
             catch (Exception e)
             {
-                Log("Patch Failed");
-                Log(e.ToString());
+                Logger.LogFatal("Patch Failed");
+                Logger.LogFatal(e);
             }
+            Logger.LogMessage($"{nameof(Settings.ShouldCreatePollution)}: {Settings.ShouldCreatePollution}");
+            Logger.LogMessage($"{nameof(Settings.InfinitePaint)}: {Settings.InfinitePaint}");
+        }
+
+        private void OnDestroy()
+        {
+            _harmony.UnpatchSelf();
         }
     }
     #endregion

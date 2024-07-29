@@ -59,12 +59,44 @@ namespace ColorCycler
     public class SprayCanOnUseItemPatch
     {
         [UsedImplicitly]
-        public static bool Prefix(ref bool __result)
+        public static bool Prefix(SprayCan __instance, ref bool __result, ref float quantity)
         {
-            // Modify __result and return false, so that pollution does not occur.
             __result = true;
+
+            // Make Paint infinite.
+            if (ColorCyclerBep.Settings.InfinitePaint)
+            {
+                ColorCyclerBep.Logger.LogDebug($"Setting Quantity to 0 from {quantity}");
+                quantity = 0.0f;
+            }
+            ColorCyclerBep.Logger.LogDebug($"Using Quantity {quantity}");
+
+            // Return true, so that original code is executed, if pollution should occur.
+            if (ColorCyclerBep.Settings.ShouldCreatePollution){
+                return true;
+            }
+
+            // No pollution, skip original, but apply Quantity in case of non-infinite paint
+            __instance.Quantity -= quantity;
             return false;
         }
+    }
+
+    // We have to patch Consumable because SprayCan does not implement the method
+    [HarmonyPatch(typeof(Consumable), nameof(Consumable.GetQuantityText))]
+    public class ConsumableGetQuantityTextPatch
+    {
+        [UsedImplicitly]
+        public static bool Prefix(Consumable __instance, ref string __result)
+        {
+            if (__instance is not SprayCan sprayCan || !ColorCyclerBep.Settings.InfinitePaint)
+            {
+                return true;
+            }
+            __result = "Infinite";
+            return false;
+        }
+
     }
 
     // We have to patch Consumable because SprayCan does not implement the method
