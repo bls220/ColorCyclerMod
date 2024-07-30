@@ -59,12 +59,11 @@ namespace ColorCycler
     public class SprayCanOnUseItemPatch
     {
         [UsedImplicitly]
-        public static bool Prefix(ref float quantity)
+        public static bool Prefix(ref bool __result)
         {
-            // Make Paint infinite.
-            quantity = 0.0f;
-            // Not modifying __result and returning false, so that pollution still occurs.
-            return true;
+            // Modify __result and return false, so that pollution does not occur.
+            __result = true;
+            return false;
         }
     }
 
