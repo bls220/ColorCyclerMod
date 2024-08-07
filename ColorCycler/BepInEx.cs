@@ -10,10 +10,10 @@ namespace ColorCycler
     {
         public const string pluginGuid = "net.elmo.stationeers.ColorCycler";
         public const string pluginName = "ColorCycler";
-        public const string pluginVersion = "2.0.0";
+        public const string pluginVersion = "1.1.0";
         public static void Log(string line)
         {
-            Debug.Log($"[{pluginName}]: {line}");
+            Debug.Log("[" + pluginName + "]: " + line);
         }
         void Awake()
         {
