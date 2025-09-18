@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetadata xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>Color Cycler</Name>
+  <Author>Elmotrix</Author>
+  <Version>1.200000.00</Version>
+  <Description>Cycles colors on spray cans with mouse wheel</Description>
+  <Tags>
+	<Tag>paint</Tag>
+  </Tags>
+</ModMetadata>
