@@ -44,6 +44,7 @@ namespace ColorCycler
 
                     if (NetworkManager.IsClient)
                     {
+                        ColorCyclerBep.Logger.LogDebug($"Sending {nameof(ThingColorMessage)} to Server. ColorIndex = {current}, ThingId = {sprayCan.ReferenceId}");
                         NetworkClient.SendToServer(new ThingColorMessage
                         {
                             ThingId = sprayCan.ReferenceId,
@@ -72,7 +73,8 @@ namespace ColorCycler
             ColorCyclerBep.Logger.LogDebug($"Using Quantity {quantity}");
 
             // Return true, so that original code is executed, if pollution should occur.
-            if (ColorCyclerBep.Settings.ShouldCreatePollution){
+            if (ColorCyclerBep.Settings.ShouldCreatePollution)
+            {
                 return true;
             }
 
@@ -108,7 +110,7 @@ namespace ColorCycler
         {
             if (__instance is SprayCan sprayCan)
             {
-                if (Thing.IsNetworkUpdateRequired(4096U, networkUpdateType))
+                if (Thing.IsNetworkUpdateRequired(ColorCyclerModHelpers.PaintableMaterialNetworkFlag, networkUpdateType))
                 {
                     writer.WriteInt32(ColorCyclerModHelpers.GetPaintColorIndex(sprayCan.PaintMaterial));
                 }
@@ -125,7 +127,7 @@ namespace ColorCycler
         {
             if (__instance is SprayCan sprayCan)
             {
-                if (Thing.IsNetworkUpdateRequired(4096U, networkUpdateType))
+                if (Thing.IsNetworkUpdateRequired(ColorCyclerModHelpers.PaintableMaterialNetworkFlag, networkUpdateType))
                 {
                     int index = reader.ReadInt32();
                     var paintMaterial = ColorCyclerModHelpers.GetPaintColor(index);
@@ -141,6 +143,7 @@ namespace ColorCycler
         [UsedImplicitly]
         public static void Postfix(ThingColorMessage __instance, long hostId)
         {
+            ColorCyclerBep.Logger.LogDebug($"Received {nameof(ThingColorMessage)}. ColorIndex = {__instance.ColorIndex}, ThingId = {__instance.ThingId}");
             if (Thing.Find(__instance.ThingId) is SprayCan sprayCan)
             {
                 var paintMaterial = ColorCyclerModHelpers.GetPaintColor(__instance.ColorIndex);

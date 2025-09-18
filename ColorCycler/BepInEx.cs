@@ -10,7 +10,7 @@ namespace ColorCycler
     {
         public const string pluginGuid = "net.elmo.stationeers.ColorCycler";
         public const string pluginName = "ColorCycler";
-        public const string pluginVersion = "1.1.0";
+        public const string pluginVersion = "1.2.0";
 
         private Harmony _harmony;
 

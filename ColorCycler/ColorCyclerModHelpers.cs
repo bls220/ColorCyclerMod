@@ -9,6 +9,8 @@ namespace ColorCycler
 
     internal static class ColorCyclerModHelpers
     {
+        internal const ushort PaintableMaterialNetworkFlag = 0x1000; //NetworkUpdateType.Thing.GenericFlag2
+
         public static int GetPaintColorIndex(UnityEngine.Material paintMaterial)
         {
             for (int i = 0; i < GameManager.Instance.CustomColors.Count; i++)
@@ -23,15 +25,22 @@ namespace ColorCycler
 
         public static UnityEngine.Material GetPaintColor(int colorIndex)
         {
+            if (colorIndex < 0 || colorIndex > GameManager.Instance.CustomColors.Count)
+            {
+                ColorCyclerBep.Logger.LogError($"{nameof(GetPaintColor)}: {nameof(colorIndex)} was {colorIndex:D} which is out of range.");
+                colorIndex = 0;
+            }
             return GameManager.Instance.CustomColors[colorIndex].Normal;
         }
 
         public static void UpdateSprayCan(SprayCan sprayCan, UnityEngine.Material paintMaterial)
         {
-            ColorCyclerBep.Logger.LogMessage($"{nameof(ColorCyclerBep.Settings.ShouldCreatePollution)}: {ColorCyclerBep.Settings.ShouldCreatePollution}");
-            ColorCyclerBep.Logger.LogMessage($"{nameof(ColorCyclerBep.Settings.InfinitePaint)}: {ColorCyclerBep.Settings.InfinitePaint}");
+            ColorCyclerBep.Logger.LogDebug($"{nameof(ColorCyclerBep.Settings.ShouldCreatePollution)}: {ColorCyclerBep.Settings.ShouldCreatePollution}");
+            ColorCyclerBep.Logger.LogDebug($"{nameof(ColorCyclerBep.Settings.InfinitePaint)}: {ColorCyclerBep.Settings.InfinitePaint}");
+            ColorCyclerBep.Logger.LogDebug($"Updating {sprayCan.DisplayName} - {sprayCan.ReferenceId} to {paintMaterial.name} on {(NetworkManager.IsServer ? "Server" : "Client")}");
             sprayCan.PaintableMaterial = paintMaterial;
             sprayCan.PaintMaterial = sprayCan.PaintableMaterial;
+            //TODO: Look up prefab hashes and cache for faster lookup
             foreach (Thing thing in Prefab.AllPrefabs)
             {
                 if (thing is SprayCan sprayCan2)
@@ -62,7 +71,7 @@ namespace ColorCycler
 
             if (NetworkManager.IsServer)
             {
-                sprayCan.NetworkUpdateFlags |= 4096;
+                sprayCan.NetworkUpdateFlags |= PaintableMaterialNetworkFlag;
             }
         }
     }
